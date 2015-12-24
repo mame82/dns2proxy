@@ -723,46 +723,58 @@ def parse_args():
 
     return args
 
-if __name__ == '__main__':
+def run(interface, noforward, arg_ip1, arg_ip2, arg_ips, silent, adminIP):
 
-    args = parse_args()
+    global debug
+    global dev
+    global adminip
+    global ip1
+    global ip2
+    global ip3
+    global Resolver
+    global s
+    global serving_ids
+    global noserv
+    global sniff
+    global fake_ips
     
-    debug = not args.silent
-    dev = args.interface
-    adminip = args.adminIP
-    ip1 = args.ip1
-    ip2 = args.ip2
-    Forward = not args.noforward
-    
+    debug = not silent
+    dev = interface
+    adminip = adminIP
+    ip1 = arg_ip1
+    ip2 = arg_ip2
+    Forward = not noforward
+
     fake_ips = []
-    # List of of ips
-    if args.ips is not None:
-        for ip in args.ips.split(","):
-            fake_ips.append(ip)
-    
+    for ip in arg_ips:
+        fake_ips.append(ip)
+
     Resolver = dns.resolver.Resolver()
-    
-    
+
     process_files()
+
     Resolver.reset()
     Resolver.read_resolv_conf(RESOLVCONF)
+
     signal.signal(signal.SIGUSR1, SIGUSR1_handle)
+
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     s.bind(('', 53))
+
     if Forward:
         DEBUGLOG('DNS Forwarding activado....')
     else:
         DEBUGLOG('DNS Forwarding desactivado....')
-    
+
     DEBUGLOG('binded to UDP port 53.')
     serving_ids = []
     noserv = True
-    
+
     if ip1 is not None and ip2 is not None and Forward:
         sniff = ThreadSniffer()
         sniff.start()
-    
+
     while True:
         if noserv:
             DEBUGLOG('waiting requests.')
@@ -777,3 +789,15 @@ if __name__ == '__main__':
         if noserv:
             DEBUGLOG('serving a request.')
             requestHandler(address, message)
+
+if __name__ == '__main__':
+
+    args = parse_args()
+
+    run_dns2proxy(args.interface,
+            noforward=args.noforward,
+            arg_ip1=args.ip1,
+            arg_ip2=args.ip2,
+            arg_ips=args.ips,
+            silent=args.silent,
+            adminIP=args.adminIP)
