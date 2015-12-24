@@ -708,8 +708,9 @@ def parse_args():
                     default=None)
 
     parser.add_argument("-I", "--ips",
+                    nargs='*',
                     help="List of IPs to add after ip1,ip2 separated with commas",
-                    default=None)
+                    default=[])
 
     parser.add_argument("-S", "--silent",
                     help="Silent mode",
@@ -794,10 +795,10 @@ if __name__ == '__main__':
 
     args = parse_args()
 
-    run_dns2proxy(args.interface,
-            noforward=args.noforward,
-            arg_ip1=args.ip1,
-            arg_ip2=args.ip2,
-            arg_ips=args.ips,
-            silent=args.silent,
-            adminIP=args.adminIP)
+    run(args.interface,
+        noforward=args.noforward,
+        arg_ip1=args.ip1,
+        arg_ip2=args.ip2,
+        arg_ips=args.ips,
+        silent=args.silent,
+        adminIP=args.adminIP)
