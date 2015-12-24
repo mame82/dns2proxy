@@ -53,31 +53,6 @@ specific_file = "spoof.cfg"
 dominios_file = "domains.cfg"
 transform_file = "transform.cfg"
 
-parser = argparse.ArgumentParser()
-parser.add_argument("-N", "--noforward", help="DNS Fowarding OFF (default ON)", action="store_true")
-parser.add_argument("-i", "--interface", help="Interface to use", default="eth0")
-parser.add_argument("-u", "--ip1", help="First IP to add at the response", default=None)
-parser.add_argument("-d", "--ip2", help="Second IP to add at the response", default=None)
-parser.add_argument("-I", "--ips", help="List of IPs to add after ip1,ip2 separated with commas", default=None)
-parser.add_argument("-S", "--silent", help="Silent mode", action="store_true")
-parser.add_argument("-A", "--adminIP", help="Administrator IP for no filtering", default="192.168.0.1")
-
-args = parser.parse_args()
-
-debug = not args.silent
-dev = args.interface
-adminip = args.adminIP
-ip1 = args.ip1
-ip2 = args.ip2
-Forward = not args.noforward
-
-fake_ips = []
-# List of of ips
-if args.ips is not None:
-    for ip in args.ips.split(","):
-        fake_ips.append(ip)
-
-Resolver = dns.resolver.Resolver()
 
 ######################
 # GENERAL SECTION    #
@@ -713,38 +688,92 @@ def make_response(qry=None, id=None, RCODE=0):
     resp.set_rcode(RCODE)
     return resp
 
+def parse_args():
 
-process_files()
-Resolver.reset()
-Resolver.read_resolv_conf(RESOLVCONF)
-signal.signal(signal.SIGUSR1, SIGUSR1_handle)
-s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-s.bind(('', 53))
-if Forward:
-    DEBUGLOG('DNS Forwarding activado....')
-else:
-    DEBUGLOG('DNS Forwarding desactivado....')
+    parser = argparse.ArgumentParser()
 
-DEBUGLOG('binded to UDP port 53.')
-serving_ids = []
-noserv = True
+    parser.add_argument("-N", "--noforward",
+                    help="DNS Fowarding OFF (default ON)",
+                    action="store_true")
 
-if ip1 is not None and ip2 is not None and Forward:
-    sniff = ThreadSniffer()
-    sniff.start()
+    parser.add_argument("-i", "--interface",
+                    help="Interface to use",
+                    default="eth0")
+    parser.add_argument("-u", "--ip1",
+                    help="First IP to add at the response",
+                    default=None)
 
-while True:
-    if noserv:
-        DEBUGLOG('waiting requests.')
+    parser.add_argument("-d", "--ip2",
+                    help="Second IP to add at the response",
+                    default=None)
 
-    try:
-        message, address = s.recvfrom(1024)
-        noserv = True
-    except socket.error as (code, msg):
-        if code != errno.EINTR:
-            raise
+    parser.add_argument("-I", "--ips",
+                    help="List of IPs to add after ip1,ip2 separated with commas",
+                    default=None)
 
-    if noserv:
-        DEBUGLOG('serving a request.')
-        requestHandler(address, message)
+    parser.add_argument("-S", "--silent",
+                    help="Silent mode",
+                    action="store_true")
+
+    parser.add_argument("-A", "--adminIP",
+                    help="Administrator IP for no filtering",
+                    default="192.168.0.1")
+
+    args = parser.parse_args()
+
+    return args
+
+if __name__ == '__main__':
+
+    args = parse_args()
+    
+    debug = not args.silent
+    dev = args.interface
+    adminip = args.adminIP
+    ip1 = args.ip1
+    ip2 = args.ip2
+    Forward = not args.noforward
+    
+    fake_ips = []
+    # List of of ips
+    if args.ips is not None:
+        for ip in args.ips.split(","):
+            fake_ips.append(ip)
+    
+    Resolver = dns.resolver.Resolver()
+    
+    
+    process_files()
+    Resolver.reset()
+    Resolver.read_resolv_conf(RESOLVCONF)
+    signal.signal(signal.SIGUSR1, SIGUSR1_handle)
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    s.bind(('', 53))
+    if Forward:
+        DEBUGLOG('DNS Forwarding activado....')
+    else:
+        DEBUGLOG('DNS Forwarding desactivado....')
+    
+    DEBUGLOG('binded to UDP port 53.')
+    serving_ids = []
+    noserv = True
+    
+    if ip1 is not None and ip2 is not None and Forward:
+        sniff = ThreadSniffer()
+        sniff.start()
+    
+    while True:
+        if noserv:
+            DEBUGLOG('waiting requests.')
+    
+        try:
+            message, address = s.recvfrom(1024)
+            noserv = True
+        except socket.error as (code, msg):
+            if code != errno.EINTR:
+                raise
+    
+        if noserv:
+            DEBUGLOG('serving a request.')
+            requestHandler(address, message)
