@@ -724,7 +724,13 @@ def parse_args():
 
     return args
 
-def run(interface, noforward, arg_ip1, arg_ip2, arg_ips, silent, adminIP):
+def run(interface=None,
+        noforward=None,
+        arg_ip1=None,
+        arg_ip2=None,
+        arg_ips=[],
+        silent=False,
+        adminIP=None):
 
     global debug
     global dev
