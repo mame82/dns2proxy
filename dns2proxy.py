@@ -41,17 +41,20 @@ transformation = {}
 nospoof = []
 nospoofto = []
 victims = []
+Forward = None
 
-LOGREQFILE = "dnslog.txt"
-LOGSNIFFFILE = "snifflog.txt"
-LOGALERTFILE = "dnsalert.txt"
-RESOLVCONF = "resolv.conf"
-victim_file = "victims.cfg"
-nospoof_file = "nospoof.cfg"
-nospoofto_file = "nospoofto.cfg"
-specific_file = "spoof.cfg"
-dominios_file = "domains.cfg"
-transform_file = "transform.cfg"
+configs_path = os.path.dirname(os.path.realpath(__file__))
+
+LOGREQFILE = "%s/dnslog.txt" % configs_path
+LOGSNIFFFILE = "%s/snifflog.txt"        % configs_path
+LOGALERTFILE = "%s/dnsalert.txt"    % configs_path
+RESOLVCONF = "%s/resolv.conf"    % configs_path
+victim_file = "%s/victims.cfg"    % configs_path
+nospoof_file = "%s/nospoof.cfg"    % configs_path
+nospoofto_file = "%s/nospoofto.cfg"    % configs_path
+specific_file = "%s/spoof.cfg"    % configs_path
+dominios_file = "%s/domains.cfg"    % configs_path
+transform_file = "%s/transform.cfg"    % configs_path
 
 
 ######################
@@ -724,7 +727,13 @@ def parse_args():
 
     return args
 
-def run(interface, noforward, arg_ip1, arg_ip2, arg_ips, silent, adminIP):
+def run(interface=None,
+        noforward=None,
+        arg_ip1=None,
+        arg_ip2=None,
+        arg_ips=[],
+        silent=False,
+        adminIP=None):
 
     global debug
     global dev
@@ -738,6 +747,7 @@ def run(interface, noforward, arg_ip1, arg_ip2, arg_ips, silent, adminIP):
     global noserv
     global sniff
     global fake_ips
+    global Forward
     
     debug = not silent
     dev = interface
