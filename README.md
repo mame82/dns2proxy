@@ -123,11 +123,56 @@ This server is necesary to make the sslstrip+ attack.
 >Address: 68.180.206.184  
   
   
-Instalation  
------------  
+Installation  
+------------
   
 dnspython (www.dnspython.com) is needed. 
 Tested with Python 2.6 and Python 2.7.
+
+
+Importing Dns2Proxy as a Python module
+--------------------------------------
+
+Dns2proxy can be imported and run within a Python script or larger project. To use Dns2proxy as a module,
+first import it within your project file:
+
+```python
+
+	import dns2proxy
+
+```
+
+Then start it by making a call to dns2proxy.run() as shown below, passing your network interface as an argument:
+
+```python
+
+	import dns2proxy
+	dns2proxy.run(interface='wlan0')
+
+```
+
+Note that dns2proxy.run() is a blocking call, and that running dns2proxy in parallel with other modules such as
+sslstrip2 requires the use of daemon processes. For example:
+
+
+```python
+
+	import dns2proxy
+	from multiprocessing import Process
+
+	def run_dns2proxy(interface):
+
+		dns2proxy.run(interface=interface)
+
+	p = Process(target=dns2proxy.run, args=('wlan0',))
+	p.start()
+
+	print 'Run the rest of your code here'
+
+	p.stop()
+	
+
+```
 
 
 Config files description
