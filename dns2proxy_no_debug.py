@@ -305,6 +305,7 @@ def requestHandler(address, message):
     try:
         message_id = ord(message[0]) * 256 + ord(message[1])
         DEBUGLOG('msg id = ' + str(message_id))
+        
         if message_id in serving_ids:
             DEBUGLOG('I am already serving this request.')
             return
@@ -348,16 +349,28 @@ def requestHandler(address, message):
                 print 'got ' + repr(e)
                 resp = make_response(qry=msg, RCODE=2)  # RCODE =  2    Server Error
                 print 'resp = ' + repr(resp.to_wire())
+                try:
+                    serving_ids.remove(message_id)
+                except ValueError:
+                    pass
         except Exception, e:
             print 'got ' + repr(e)
             resp = make_response(id=message_id, RCODE=1)  # RCODE =  1    Format Error
             print 'resp = ' + repr(resp.to_wire())
+            try:
+                serving_ids.remove(message_id)
+            except ValueError:
+                pass
     except Exception, e:
         # message was crap, not even the ID
         print 'got ' + repr(e)
 
     if resp:
         s.sendto(resp.to_wire(), address)
+        try:
+            serving_ids.remove(message_id)
+        except ValueError:
+            pass
     if dosleep: sleep(1)   # Performance downgrade no tested jet
 
 
@@ -444,6 +457,7 @@ def std_AAAA_qry(msg):
 
 def std_A_qry(msg,prov_ip):
     global consultas
+    spoof = specificspoof
     dosleep = False
     qs = msg.question
     DEBUGLOG(str(len(qs)) + ' questions.')
@@ -533,29 +547,37 @@ def std_A_qry(msg,prov_ip):
 # 	rrset = dns.rrset.from_text(iparpa, 1000,dns.rdataclass.IN, dns.rdatatype.A, '4.4.45.4')
 # 	resp.answer.append(rrset)
 # 	return resp
-
 def std_ASPOOF_qry(msg):
-    qs = msg.question
-    print str(len(qs)) + ' questions.'
-    iparpa = qs[0].to_text().split(' ', 1)[0]
-    print 'Host: ' + iparpa
-    resp = make_response(qry=msg)
+	try:
+		spoof = specificspoof
+		DEBUGLOG('std_ASPOOF ' + repr(msg))
+		qs = msg.question
+		print str(len(qs)) + ' questions.'
+		iparpa = qs[0].to_text().split(' ', 1)[0]
+		print 'Host: ' + iparpa
+		resp = make_response(qry=msg)
 
-    for q in qs:
-        qname = q.name.to_text()[:-1]
-        print 'q name = ' + qname
-        # 	    rrset = dns.rrset.from_text(iparpa, 1000,dns.rdataclass.IN, dns.rdatatype.CNAME, 'www.facebook.com.')
-        # 		resp.answer.append(rrset)
-        # 		rrset = dns.rrset.from_text(iparpa, 1000,dns.rdataclass.IN, dns.rdatatype.CNAME, 'www.yahoo.com.')
-        # 		resp.answer.append(rrset)
-        # 		rrset = dns.rrset.from_text(iparpa, 1000,dns.rdataclass.IN, dns.rdatatype.CNAME, 'www.tuenti.com.')
-        # 		resp.answer.append(rrset)
-        # 		rrset = dns.rrset.from_text(iparpa, 1000,dns.rdataclass.IN, dns.rdatatype.CNAME, 'www.twitter.com.')
-        # 		resp.answer.append(rrset)
-        rrset = dns.rrset.from_text(qname, 1000, dns.rdataclass.IN, dns.rdatatype.A, spoof[qname])
-        resp.answer.append(rrset)
-        return resp
-
+		for q in qs:
+			qname = q.name.to_text()[:-1]
+			print 'q name = ' + qname
+			#       rrset = dns.rrset.from_text(iparpa, 1000,dns.rdataclass.IN, dns.rdatatype.CNAME, 'www.facebook.com.')
+			#       resp.answer.append(rrset)
+			#       rrset = dns.rrset.from_text(iparpa, 1000,dns.rdataclass.IN, dns.rdatatype.CNAME, 'www.yahoo.com.')
+			#       resp.answer.append(rrset)
+			#       rrset = dns.rrset.from_text(iparpa, 1000,dns.rdataclass.IN, dns.rdatatype.CNAME, 'www.tuenti.com.')
+			#       resp.answer.append(rrset)
+			#       rrset = dns.rrset.from_text(iparpa, 1000,dns.rdataclass.IN, dns.rdatatype.CNAME, 'www.twitter.com.')
+			#       resp.answer.append(rrset)
+			
+			addr = spoof[qname]
+			if qname[:len(qname) - 1] != ".":
+				qname = qname + "." # make absolute name
+			rrset = dns.rrset.from_text(qname, 1000, dns.rdataclass.IN, dns.rdatatype.A, addr)
+			
+			resp.answer.append(rrset)
+			return resp
+	except:
+		raise
 
 def make_response(qry=None, id=None, RCODE=0):
     if qry is None and id is None:
@@ -598,6 +620,8 @@ while True:
     except socket.error as (code, msg):
     	if code != errno.EINTR:
     		raise
+
+    DEBUGLOG("Handling Message !!!!!")
 
     if noserv:
     	DEBUGLOG('serving a request.')
